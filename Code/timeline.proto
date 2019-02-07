@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+
+service timelineService {
+
+    rpc follow(username) returns(Reply) {}
+
+    rpc unfollow(username) returns(Reply) {}
+
+    rpc list(Empty) returns(stream List) {}
+
+    rpc timeline(stream posts) returns(stream posts) {}
+}
+
+message username{
+
+    string user = 1;
+
+}
+
+message Reply{
+
+    int32 status = 1;
+
+    //Success = 1; Failure = 0; 
+
+}
+
+message posts {
+    
+    string user = 1;
+    int32 time = 2; //using unix time
+    string post = 3;
+
+}
+
+message List {
+
+    string user = 1; 
+
+}
+
+message Empty {
+
+
+
+}
