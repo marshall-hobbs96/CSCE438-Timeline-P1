@@ -7,7 +7,7 @@ service timelineService {
 
     rpc unfollow(username) returns(Reply) {}
 
-    rpc list(Empty) returns(stream List) {}
+    rpc list(Empty) returns(stream ListUsers) {}
 
     rpc timeline(stream posts) returns(stream posts) {}
 }
@@ -34,7 +34,7 @@ message posts {
 
 }
 
-message List {
+message ListUsers {
 
     string user = 1; 
 
