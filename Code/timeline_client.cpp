@@ -8,7 +8,7 @@
 
 #include <unistd.h>
 #include <grpc++/grpc++.h>
-#include "client.h"
+#include "timeline_client.h"
 
 class Client : public IClient
 {

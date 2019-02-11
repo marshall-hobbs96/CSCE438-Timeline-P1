@@ -12,6 +12,7 @@
 #include <grpcpp/security/server_credentials.h>
 #include "helper.h"
 #include "route_guide.grpc.pb.h"
+#include "timeline_server.h"
 
 using grpc::Server;
 using grpc::ServerBuilder;
@@ -177,9 +178,20 @@ class timelineServiceImpl final : public timelineService:service {
 
         }
 
-        Status List(empty arg) override {   //list out all the names of the users. Easy
+        Status List(Empty * empty, ServerWriter<ListUsers> * writer) override {   //list out all the names of the users. Easy
 
+            int j = 0;
 
+            for(j = 0; j < clients.size(); j++) {
+
+                ListUsers * newUser = new ListUsers;
+                *newUser->set_user(clients.at(j));
+                writer->Write(*user);
+                delete user;
+
+            }
+
+            return Status::OK;
 
         }
 
