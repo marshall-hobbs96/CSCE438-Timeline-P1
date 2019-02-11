@@ -30,7 +30,16 @@ using std::chrono::system_clock;
 
 class timelineServiceImpl final : public timelineService:service {
 
+    std::vector<std::string> userNameList;
+    std::vector<std::vector<string>> userTimelines;
+
     public:
+
+        Status acceptConnections(std::string username) {
+
+
+            
+        }
 
         Status follow(std::string username) {
 
@@ -55,11 +64,6 @@ class timelineServiceImpl final : public timelineService:service {
 
 
         }
-
-        private: 
-
-        std::vector<std::string> userNameList;
-        std::vector<std::vector<string>> userTimelines;
 
 
 }
