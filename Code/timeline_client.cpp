@@ -1,8 +1,11 @@
 #include <iostream>
 //#include <memory>
 //#include <thread>
-//#include <vector>
+
+#include <vector>
 #include <string>
+#include <sstream>
+
 #include <unistd.h>
 #include <grpc++/grpc++.h>
 #include "client.h"
@@ -66,7 +69,8 @@ int Client::connectTo()
     // a member variable in your own Client class.
     // Please refer to gRpc tutorial how to create a stub.
 	// ------------------------------------------------------------
-
+	string host = this.hostname + ":" + this.host;
+	grpc::CreateChannel(host, grpc::InsecureChannelCredentials());
     return 1; // return 1 if success, otherwise return -1
 }
 
@@ -87,6 +91,29 @@ IReply Client::processCommand(std::string& input)
 	// - JOIN/LEAVE and "<username>" are separated by one space.
 	// ------------------------------------------------------------
 	
+	std::string str("Split me by whitespaces");
+    std::string buf;                 // Have a buffer string
+    std::stringstream ss(str);       // Insert the string into a stream
+    std::vector<std::string> tokens; // Create vector to hold our words
+
+    while (ss >> buf)
+        tokens.push_back(buf);
+	
+	if(strstr(tokens[0].c_str(),"FOLLOW".cstr)) {
+	  
+	}
+	else if(strstr(tokens[0].c_str(),"UNFOLLOW".cstr)) {
+	  
+	}
+	else if(strstr(tokens[0].c_str(),"LIST".cstr)) {
+	  
+	}
+	else if(strstr(tokens[0].c_str(),"TIMELINE".cstr)) {
+	  
+	}
+	else {
+	  
+	}
     // ------------------------------------------------------------
 	// GUIDE 2:
 	// Then, you should create a variable of IReply structure
