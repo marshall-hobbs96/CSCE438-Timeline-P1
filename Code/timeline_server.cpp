@@ -169,14 +169,40 @@ class TimelineImpl final : public Timeline::Service {
 
         }
 
-        Status list(ServerContext * context, const Empty * empty, ServerWriter<ListUsers> * writer) override {   //list out all the names of the users. Easy
+        Status list(ServerContext * context, const username * user, ServerWriter<ListUsers> * writer) override {   //list out all the names of the users. Easy
 
-            int j = 0;
+            std::string connected_client = user->user();
+            int client_place = -1; 
+
+            int j = 0; 
+
+            for(j = 0; j < clients.size(); j++){
+
+                if(connected_client == clients.at(j).clientName) {
+
+                    client_place = j; 
+
+                }
+
+            }
 
             for(j = 0; j < clients.size(); j++) {
 
                 ListUsers * newUser = new ListUsers;
                 newUser->set_user(clients.at(j).clientName);
+                newUser->set_followed(0);
+
+                int k = 0;
+                for(k = 0; k < clients.at(client_place).followedList.size(); k++){
+
+                    if(newUser->user() == clients.at(client_place).followedList.at(k)){
+
+                        newUser->set_followed(1);
+
+                    }
+
+                }
+
                 writer->Write(*newUser);
                 delete newUser;
 

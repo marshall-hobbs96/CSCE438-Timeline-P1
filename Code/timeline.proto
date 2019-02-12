@@ -8,7 +8,7 @@ service Timeline {
 
     rpc unfollow(fufArgs) returns(Empty) {}
 
-    rpc list(Empty) returns(stream ListUsers) {}
+    rpc list(username) returns(stream ListUsers) {}
 
     rpc updateTimeline(username) returns(stream posts) {}
 
@@ -50,6 +50,8 @@ message posts {
 message ListUsers {
 
     string user = 1; 
+    int32 followed = 2;
+    //use 0 if this user is not followed, 1 if is
 
 }
 
