@@ -31,23 +31,14 @@ using timeline::Empty;
 using std::chrono::system_clock;
 
 
-class post {
-
-    public:
-    int time;
-    std::string name;
-    std::string content;
-
-}
-
 class clientEntry {
 
     public:
 
     std::string clientName;     //clients name
     std::vector<std::string> followedList;      //who theyre following
-    std::vector<post> posts;            //list of their posts
-    std::vector<std::string> timeline;      //timeline
+    std::vector<posts> client_posts;            //list of their posts
+    std::vector<posts> timeline;      //timeline
 
 }
 
@@ -148,7 +139,7 @@ class timelineServiceImpl final : public timelineService:service {
 
                 if(followName == clients.at(j).clientName) {
                 //we found a user with the specified username. Now we need to remove username from followed list, and update timeline accordingly
-                    follow = j;
+                    unfollow = j;
 
                 }
 
@@ -160,15 +151,15 @@ class timelineServiceImpl final : public timelineService:service {
 
             }
 
-            else if(follow == -1) { //we couldn't find the username of the user we're trying to follow in our database
+            else if(unfollow == -1) { //we couldn't find the username of the user we're trying to unfollow in our database
 
                 return Status::NOT_FOUND;
 
             }
 
-            else {          //good, we found the client making the argument, and we found the user we're trying to follow
+            else {          //good, we found the client making the argument, and we found the user we're trying to unfollow ////////////////////////////////////////////////////////////////////
 
-                clients.at(client).followedList.push_back(clients.at(follow).clientName); //a little messy looking, but we just add follow username to client followed users vector
+                clients.at(client).followedList.erase(unfollow); 
                 
                 return Status::OK;
 
@@ -195,9 +186,61 @@ class timelineServiceImpl final : public timelineService:service {
 
         }
 
-        Status timeline(posts userPosts) override {     //start the timeline loop. Accept new posts from user, and update their timeline with new posts from followed users
+        Status timeline(ServerReaderWriter<posts, posts> * stream) override {     //start the timeline loop. Accept new posts from user, and update their timeline with new posts from followed users
         
-            
+            std::vector<posts> received_posts;  //vector of received posts, might not end up needing
+            std::string connected_client;       //name of our connected client running on timeline. Only need to get once from first received post
+            int client_place = -1;              //place where our client is in our clients vector. Only need to get once from name on first post
+            posts post;                         //posts objects for receiving the posts sent from client
+
+            while(stream->Read(&post)) {
+
+                if(client_place == -1) {    //This is our first loop, I.e. timeline connection was just established. Lets find the name and place of the client within our clients vector
+
+                    connected_client = post.user(); //got our name, now lets find in our clients vector
+
+                    int j = 0;
+
+                    for(j = 0; j < clients.size(); j++) {   //basically just reused this search function from earlier
+                
+                        if(connected_client == clients.at(j).clientName) {    //found index for client
+
+                            client_place = j;
+
+                        }
+
+                    }
+
+                    if(client_place == -1) {    //error, we couldn't find our client in our client vector. Shouldn't happen but here we are
+
+                        return Status::FAILED_PRECONDITION;
+
+                    }
+
+                }
+
+                //Ok, now I think we need to check the post, and update all clients timelines. First lets start with connected client. Really hope this is threadsafe...
+
+                clients.at(client_place).client_posts.push_back(post);
+                clients.at(client_place).timeline.push_back(post);
+
+                int j = 0;
+                for(j = 0; j < clients.size(); j++){
+
+                    int k = 0;
+                    for(k = 0; k < clients.at(j).followedList.size(); k ++){
+
+                        if(clients.at(j).followedList.at(k) == connected_client){
+
+                            clients.at(j).timeline.push_back(post);
+
+                        }
+
+                    }
+
+                }
+
+            }
 
         }
 

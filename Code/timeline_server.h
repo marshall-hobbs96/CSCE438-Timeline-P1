@@ -72,15 +72,15 @@ class timelineServiceImpl final : public timelineService:service {
 
         }
 
-        Status List(Empty * empty, , ListUsers * users) {
+        Status List(Empty * empty, ServerWriter<ListUsers> * writer) {
 
 
 
         }
 
-        Status timeline(posts * userPosts) {
+        Status timeline(ServerReaderWriter<posts> * stream) {
 
-
+            
 
         }
 
