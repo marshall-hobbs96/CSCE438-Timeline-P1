@@ -6,12 +6,11 @@
 #include <string>
 
 #include <grpc/grpc.h>
-#include <grpcpp/server.h>
-#include <grpcpp/server_builder.h>
-#include <grpcpp/server_context.h>
-#include <grpcpp/security/server_credentials.h>
-#include "helper.h"
-#include "route_guide.grpc.pb.h"
+#include <grpc++/server.h>
+#include <grpc++/server_builder.h>
+#include <grpc++/server_context.h>
+#include <grpc++/security/server_credentials.h>
+#include "timeline.grpc.pb.h"
 
 using grpc::Server;
 using grpc::ServerBuilder;
@@ -23,7 +22,7 @@ using grpc::Status;
 
 using timeline::username;
 using timeline::fufArgs;
-using timeline:Reply;
+using timeline::Reply;
 using timeline::posts;
 using timeline::ListUsers;
 using timeline::Empty;
@@ -39,16 +38,16 @@ class clientEntry {
     std::vector<posts> client_posts;            //list of their posts
     std::vector<posts> timeline;      //timeline
 
-}
+};
 
-class timelineServiceImpl final : public timelineService:service {
+class timelineImpl final : public timeline::Service {
 
     
     std::vector<clientEntry> clients;
 
     public:
 
-        Status acceptConnections(username* username, Empty* response) override {       //great, we have a new user. So lets add it to clients. 
+        Status acceptConnections(ServerContext * context, const username* username, Empty* response) override {       //great, we have a new user. So lets add it to clients. 
 
             new clientEntry *newClient; 
 
@@ -59,7 +58,7 @@ class timelineServiceImpl final : public timelineService:service {
 
         }
 
-        Status follow(fufArgs* args, Empty * empty) override {          //allow user to follow another user
+        Status follow(ServerContext * context, const fufArgs* args, Empty * empty) override {          //allow user to follow another user
 
             if(args->clientName() == args->argName()) {  //someone is trying to follow themself... lets not waste time here...
 
@@ -114,7 +113,7 @@ class timelineServiceImpl final : public timelineService:service {
 
         }
 
-        Status unfollow(fufArgs * args, Empty * empty) override {
+        Status unfollow(ServerContext* context, const fufArgs * args, Empty * empty) override {
 
             if(args->clientName() == args->argName()) {       //someone is trying to unfollow themself...again, lets not waste time here...
 
@@ -168,7 +167,7 @@ class timelineServiceImpl final : public timelineService:service {
 
         }
 
-        Status List(Empty * empty, ServerWriter<ListUsers> * writer) override {   //list out all the names of the users. Easy
+        Status List(ServerContext * context, const Empty * empty, ServerWriter<ListUsers> * writer) override {   //list out all the names of the users. Easy
 
             int j = 0;
 
@@ -185,7 +184,7 @@ class timelineServiceImpl final : public timelineService:service {
 
         }
 
-        Status updateTimeline(username * user, ServerWriter<posts> writer) override {
+        Status updateTimeline(ServerContext * context, const username * user, ServerWriter<posts> writer) override {
 
             std::string connected_client = user->user();
             int client_place = -1; 
@@ -219,7 +218,7 @@ class timelineServiceImpl final : public timelineService:service {
 
         }
 
-        Status sendPost(posts * post, Empty * empty) {
+        Status sendPost(ServerContext * context, const posts * post, Empty * empty) {
             
             std::string client_name = post->user();
             int client_place = -1;
@@ -329,7 +328,7 @@ class timelineServiceImpl final : public timelineService:service {
 
         }*/
 
-}
+};
 
 void runServer(const std::string host, const std::string port) {
 
@@ -343,4 +342,4 @@ void runServer(const std::string host, const std::string port) {
     std::cout << "Server listening on " << serverAddress << std::endl;
     server->wait();
 
-}
+};
