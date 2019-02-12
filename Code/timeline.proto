@@ -1,61 +1,35 @@
 syntax = "proto3";
 
-
-service timelineService {
-
-    rpc follow(fufArgs) returns(Empty) {}
-
-    rpc unfollow(fufArgs) returns(Empty) {}
-
+service timeline {
+    rpc follow(fufArgs) returns(Reply) {}
+    rpc unfollow(fufArgs) returns(Reply) {}
     rpc list(Empty) returns(stream ListUsers) {}
-
-    rpc updateTimeline(username) returns(stream posts) {}
-
-    rpc sendPost(posts) returns(Empty) {}
-
     rpc timeline(stream posts) returns(stream posts) {}
-
     rpc acceptConnections(username) returns(Reply) {}
 
 }
 
 message username{
-
     string user = 1;
-
 }
 
 message fufArgs {
-
     string clientName = 1;
     string argName = 2;
-
 }
 
 message Reply{
-
-    int32 status = 1;
-
-    //Success = 1; Failure = 0; 
-
+    int32 status = 1; //Success = 1; Failure = 0; 
 }
 
 message posts {
-    
     string user = 1;
     int32 time = 2; //using unix time
     string post = 3;
-
 }
 
 message ListUsers {
-
     string user = 1; 
-
 }
 
-message Empty {
-
-
-
-}
+message Empty {}

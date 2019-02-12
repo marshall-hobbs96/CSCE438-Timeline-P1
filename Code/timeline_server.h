@@ -28,61 +28,38 @@ using routeguide::RouteNote;
 using routeguide::RouteGuide;
 using std::chrono::system_clock;
 
-class post {
-
-    public:
-    int time;
-    std::string name;
-    std::string content;
-
-}
-
-class clientEntry {
-
-    public:
-
-    std::string clientName;     //clients name
-    std::vector<std::string> followedList;      //who theyre following
-    std::vector<post> posts;            //list of their posts
-    std::vector<std::string> timeline;      //timeline
-
-}
-
 class timelineServiceImpl final : public timelineService:service {
 
-    std::vector<clientEntry> clients;
-
     public:
 
-        Status acceptConnections(username* username, Empty* response) {
-
-
-
-        }
-
-        Status follow(fufArgs * args, Empty * empty) {
+        Status follow(std::string username) {
 
             
 
         }
 
-        Status unfollow(fufArgs * args, Empty * empty) {
+        Status unfollow(std::string username) {
 
 
 
         }
 
-        Status List(Empty * empty, ServerWriter<ListUsers> * writer) {
+        Status List(empty arg) {
 
 
 
         }
 
-        Status timeline(ServerReaderWriter<posts> * stream) {
+        Status timeline(posts userPosts) {
 
-            
+
 
         }
+
+        private: 
+
+        std::vector<std::string> userNameList;
+        std::vector<std::vector<string>> userTimelines;
 
 
 }
