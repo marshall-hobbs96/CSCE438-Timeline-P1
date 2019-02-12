@@ -1,6 +1,8 @@
 syntax = "proto3";
 
-service timeline {
+package timeline;
+
+service Timeline {
 
     rpc follow(fufArgs) returns(Empty) {}
 
@@ -12,7 +14,7 @@ service timeline {
 
     rpc sendPost(posts) returns(Empty) {}
 
-    rpc acceptConnections(username) returns(Reply) {}
+    rpc acceptConnections(username) returns(Empty) {}
 
 }
 
