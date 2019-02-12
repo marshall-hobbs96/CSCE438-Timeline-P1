@@ -92,7 +92,7 @@ int Client::connectTo()
 
     ClientContext context;
     username usr;
-    Reply reply;
+    Empty reply;
 
     usr.set_user(this->myUsername);
     grpc::Status status = stub_->acceptConnections(&context, usr, &reply);
@@ -123,7 +123,7 @@ IReply Client::processCommand(std::string& input)
     //Set up variables here
     ClientContext context;    //Client that's being sent replies
     grpc::Status status;      //Success or Fail	
-    Reply reply;              //Some possible reply
+    Empty reply;              //Some possible reply
     fufArgs usrs;             //Username1 and Username2
     IReply ire;               //Their custom reply
 	
@@ -141,8 +141,13 @@ IReply Client::processCommand(std::string& input)
     }
     else if(strstr(tokens[0].c_str(),"LIST")) {
         ListUsers list;
-        Empty empty;
-        status = stub_->list(&context, empty, &list);
+        username usr;
+        std::unique_ptr<ClientReader<ListUsers>> reader(stub_->list(&context, usr));
+
+        while(reader->Read(&list)) {    //read from protocal buffer into ListUsers object list. Can now mess with list
+            
+
+        }
         //std::cout<<"list:"<<std::endl;
         //std::unique_ptr<ClientReader<ListUsers> > reader(stub_->list(&context,empty));
         //while (reader->Read(&usr)) {           
