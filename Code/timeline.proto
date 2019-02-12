@@ -9,6 +9,10 @@ service timelineService {
 
     rpc list(Empty) returns(stream ListUsers) {}
 
+    rpc updateTimeline(username) returns(stream posts) {}
+
+    rpc sendPost(posts) returns(Empty) {}
+
     rpc timeline(stream posts) returns(stream posts) {}
 
     rpc acceptConnections(username) returns(Reply) {}

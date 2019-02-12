@@ -12,7 +12,6 @@
 #include <grpcpp/security/server_credentials.h>
 #include "helper.h"
 #include "route_guide.grpc.pb.h"
-#include "timeline_server.h"
 
 using grpc::Server;
 using grpc::ServerBuilder;
@@ -186,7 +185,86 @@ class timelineServiceImpl final : public timelineService:service {
 
         }
 
-        Status timeline(ServerReaderWriter<posts, posts> * stream) override {     //start the timeline loop. Accept new posts from user, and update their timeline with new posts from followed users
+        Status updateTimeline(username * user, ServerWriter<posts> writer) override {
+
+            std::string connected_client = user->user();
+            int client_place = -1; 
+
+            int j = 0; 
+
+            for(j = 0; j < clients.size(); j++){
+
+                if(connected_client == clients.at(j).clientName) {
+
+                    client_place = j; 
+
+                }
+
+            }
+
+            if(client_place == -1) {
+
+                return Status::FAILED_PRECONDITION;
+
+            }
+
+            int l = 0;
+            for(l = 0; ((l < 20) && (l < clients.at(client_place).timeline.size())); l++) {
+
+                writer->Write(&clients.at(client_place).timeline.at(time.size() - l - 1));
+
+            }
+
+            return Status::OK;
+
+        }
+
+        Status sendPost(posts * post, Empty * empty) {
+            
+            std::string client_name = post->user();
+            int client_place = -1;
+
+            int j = 0; 
+
+            for(j = 0; j < clients.size(); j++){
+
+                if(connected_client == clients.at(j).clientName) {
+
+                    client_place = j; 
+
+                }
+
+            }
+
+            if(client_place == -1) {
+
+                return Status::FAILED_PRECONDITION;
+
+            }
+
+            clients.at(client_place).client_posts.push_back(post);
+            clients.at(client_place).timeline.push_back(post);
+
+            int j = 0;
+            for(j = 0; j < clients.size(); j++){
+
+                int k = 0;
+                for(k = 0; k < clients.at(j).followedList.size(); k ++){
+
+                    if(clients.at(j).followedList.at(k) == connected_client){
+
+                        clients.at(j).timeline.push_back(post);
+
+                    }
+
+                }
+
+            }
+            
+
+        }
+
+/*       Status timeline(ServerReaderWriter<posts, posts> * stream) override {     //start the timeline loop. Accept new posts from user, and update their timeline with new posts from followed users
         
             std::vector<posts> received_posts;  //vector of received posts, might not end up needing
             std::string connected_client;       //name of our connected client running on timeline. Only need to get once from first received post
@@ -240,9 +318,16 @@ class timelineServiceImpl final : public timelineService:service {
 
                 }
 
+                int l = 0;
+                for(l = 0; ((l < 20) && (l < clients.at(client_place).timeline.size())); l++) {
+
+                    stream->Write(&clients.at(client_place).timeline.at(time.size() - l - 1));
+
+                }
+
             }
 
-        }
+        }*/
 
 }
 
