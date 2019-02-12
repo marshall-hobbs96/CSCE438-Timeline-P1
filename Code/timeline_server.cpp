@@ -371,3 +371,9 @@ void runServer(const std::string host, const std::string port) {
     server->Wait();
 
 };
+
+int main() {
+
+    //place holder
+
+}

@@ -29,6 +29,15 @@ using grpc::ClientReaderWriter;
 using grpc::ClientWriter;
 using grpc::Status;
 
+using timeline::username;
+using timeline::fufArgs;
+using timeline::Reply;
+using timeline::posts;
+using timeline::ListUsers;
+using timeline::Empty;
+using timeline::Timeline;
+using std::chrono::system_clock;
+
 class Client : public IClient
 {
     public:
@@ -47,7 +56,7 @@ class Client : public IClient
         
         // You can have an instance of the client stub
         // as a member variable.
-        std::unique_ptr<timeline::Stub> stub_;
+        std::unique_ptr<Timeline::Stub> stub_;
 };
 
 int main(int argc, char** argv) {
@@ -79,7 +88,7 @@ int main(int argc, char** argv) {
 int Client::connectTo()
 {
     std::string hosting = this->hostname + ":" + this->port;
-    stub_ = timeline::NewStub(grpc::CreateChannel(hosting, grpc::InsecureChannelCredentials()));
+    stub_ = Timeline::NewStub(grpc::CreateChannel(hosting, grpc::InsecureChannelCredentials()));
 
     ClientContext context;
     username usr;
@@ -94,7 +103,7 @@ int Client::connectTo()
     //init_post.set_post("timeline created");
 
     //Writes the post there
-    //std::shared_ptr<ClientReaderWriter<::posts, ::posts>> swr(stub_->timeline(&context));
+    //std::shared_ptr<ClientReaderWriter<::posts, ::posts>> swr(stub_->Timeline(&context));
     //swr->Write(init_post);
     //swr->WritesDone();
 

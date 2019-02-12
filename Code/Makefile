@@ -36,13 +36,14 @@ PROTOS_PATH = ./
 
 vpath %.proto $(PROTOS_PATH)
 
-all: system-check timeline_client timeline_server
+all: system-check timeline_server timeline_client
+
+timeline_server: timeline.pb.o timeline.grpc.pb.o timeline_server.o
+	$(CXX) $^ $(LDFLAGS) -o $@
 
 timeline_client: timeline.pb.o timeline.grpc.pb.o timeline_client.o
 	$(CXX) $^ $(LDFLAGS) -o $@
 
-timeline_server: timeline.pb.o timeline.grpc.pb.o timeline_server.o
-	$(CXX) $^ $(LDFLAGS) -o $@
 
 
 .PRECIOUS: %.grpc.pb.cc
