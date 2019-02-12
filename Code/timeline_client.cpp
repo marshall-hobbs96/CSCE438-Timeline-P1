@@ -35,14 +35,14 @@ class Client : public IClient
         Client(const std::string& hname,
             const std::string& uname,
             const std::string& p)
-            :hostname(hname), Username(uname), port(p){}
+            :hostname(hname), myUsername(uname), port(p){}
     protected:
         virtual int connectTo();
         virtual IReply processCommand(std::string& input);
         virtual void processTimeline();
     private:
         std::string hostname;
-        std::string Username;
+        std::string myUsername;
         std::string port;
         
         // You can have an instance of the client stub
@@ -53,7 +53,7 @@ class Client : public IClient
 int main(int argc, char** argv) {
 
     std::string hostname = "localhost";
-    std::string Username = "default";
+    std::string myUsername = "default";
     std::string port = "3010";
     int opt = 0;
     while ((opt = getopt(argc, argv, "h:u:p:")) != -1){
@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
             case 'h':
                 hostname = optarg;break;
             case 'u':
-                Username = optarg;break;
+                myUsername = optarg;break;
             case 'p':
                 port = optarg;break;
             default:
@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    Client myc(hostname, Username, port);
+    Client myc(hostname, myUsername, port);
     // You MUST invoke "run_client" function to start business logic
     myc.run_client();
 
@@ -81,19 +81,22 @@ int Client::connectTo()
     std::string hosting = this->hostname + ":" + this->port;
     stub_ = timeline::NewStub(grpc::CreateChannel(hosting, grpc::InsecureChannelCredentials()));
 
-
     ClientContext context;
-    posts init_post;
+    username usr;
+    Reply reply;
+
+    usr.set_user(this->myUsername);
+    grpc::Status status = stub_->acceptConnections(&context, usr, &reply);
 
     //Set up default message
-    init_post.set_user(Username);	
-    init_post.set_time(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-    init_post.set_post("timeline created");
+    //init_post.set_user(myUsername);	
+    //init_post.set_time(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    //init_post.set_post("timeline created");
 
     //Writes the post there
-    std::shared_ptr<ClientReaderWriter<::posts, ::posts>> swr(stub_->timeline(&context));
-    swr->Write(init_post);
-    swr->WritesDone();
+    //std::shared_ptr<ClientReaderWriter<::posts, ::posts>> swr(stub_->timeline(&context));
+    //swr->Write(init_post);
+    //swr->WritesDone();
 
     return 1; // return 1 if success, otherwise return -1
 }
@@ -112,31 +115,32 @@ IReply Client::processCommand(std::string& input)
     ClientContext context;    //Client that's being sent replies
     grpc::Status status;      //Success or Fail	
     Reply reply;              //Some possible reply
-    fufArgs arguments;        //Username1 and username 2
+    fufArgs usrs;             //Username1 and Username2
     IReply ire;               //Their custom reply
 	
     if(strstr(tokens[0].c_str(),"FOLLOW")) {
-        //usr.set_user(tokens[1].c_str());
-        //status = stub_->follow(&context, usr, &reply);
-        std::cout<<"reply:"<<reply.status();
+        usrs.set_clientname(this->myUsername);
+        usrs.set_argname(tokens[1]);
+        status = stub_->follow(&context, usrs, &reply);
+        //std::cout<<"reply:"<<reply.status();
     }
     else if(strstr(tokens[0].c_str(),"UNFOLLOW")) {
-        //usr.set_user(tokens[1].c_str());
-        //status = stub_->unfollow(&context, usr, &reply);
-        std::cout<<"reply:"<<reply.status();
+        usrs.set_clientname(this->myUsername);
+        usrs.set_argname(tokens[1]);
+        status = stub_->follow(&context, usrs, &reply);
+        //std::cout<<"reply:"<<reply.status();
     }
     else if(strstr(tokens[0].c_str(),"LIST")) {
-        ListUsers usr;
+        ListUsers list;
         Empty empty;
-        std::cout<<"list:"<<std::endl;
-
-        std::unique_ptr<ClientReader<ListUsers> > reader(stub_->list(&context,empty));
-        while (reader->Read(&usr)) {           
-            std::cout <<usr.user()<< std::endl;
-            ire.all_users.push_back(usr.user());
-        }
-
-        Status status = reader->Finish();
+        status = stub_->list(&context, empty, &list);
+        //std::cout<<"list:"<<std::endl;
+        //std::unique_ptr<ClientReader<ListUsers> > reader(stub_->list(&context,empty));
+        //while (reader->Read(&usr)) {           
+        //    std::cout <<usr.user()<< std::endl;
+        //    ire.all_users.push_back(usr.user());
+        //}
+        //Status status = reader->Finish();
     }
     else if(strstr(tokens[0].c_str(),"TIMELINE")) {
         //processtimeline()

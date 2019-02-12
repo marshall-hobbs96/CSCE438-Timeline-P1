@@ -8,12 +8,12 @@
 
 enum IStatus
 {
-    SUCCESS,
-    FAILURE_ALREADY_EXISTS,
-    FAILURE_NOT_EXISTS,
-    FAILURE_INVALID_USERNAME,
-    FAILURE_INVALID,
-    FAILURE_UNKNOWN
+    SUCCESS,                  //1
+    FAILURE_ALREADY_EXISTS,   //0
+    FAILURE_NOT_EXISTS,       //-1
+    FAILURE_INVALID_USERNAME, //-2
+    FAILURE_INVALID,          //-3
+    FAILURE_UNKNOWN           //-4
 };
 
 /*

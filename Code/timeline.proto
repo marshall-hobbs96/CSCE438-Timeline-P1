@@ -3,7 +3,7 @@ syntax = "proto3";
 service timeline {
     rpc follow(fufArgs) returns(Reply) {}
     rpc unfollow(fufArgs) returns(Reply) {}
-    rpc list(Empty) returns(stream ListUsers) {}
+    rpc list(Empty) returns(ListUsers) {}
     rpc timeline(stream posts) returns(stream posts) {}
     rpc acceptConnections(username) returns(Reply) {}
 
@@ -29,7 +29,7 @@ message posts {
 }
 
 message ListUsers {
-    string user = 1; 
+    string users = 1; 
 }
 
 message Empty {}

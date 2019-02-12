@@ -20,14 +20,14 @@ using grpc::ServerReader;
 using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
-
+/*
 using timeline::username;
 using timeline::fufArgs;
 using timeline::Reply;
 using timeline::posts;
 using timeline::ListUsers;
 using timeline::Empty;
-
+*/
 
 using std::chrono::system_clock;
 
@@ -45,15 +45,28 @@ class timelineImpl final : public timeline::Service {
     public:
         std::vector<clientEntry> clients;
 
+        //Used for connectto, begins a timeline for all users
+        ::grpc::Status acceptConnections(::grpc::ClientContext* context, const ::username& request, ::Reply* response) override {       
+            //great, we have a new user. So lets add it to clients. 
+            new clientEntry *newClient; 
+            newClient->clientName = username->user();
+            clients.push_back(*newClient);
+            response->set_status(0);
+            return Status::OK;
+
+        }
+
         //FOLLOW <username>: Follows the named user's timeline
-        Status follow(ServerContext* context, const fufArgs* args, Reply* response) override {
+        ::grpc::Status follow(::grpc::ServerContext* context, const ::fufArgs* args, ::Reply* response) override {
             //Prepping variables
-            std::string clientName = args->get_clientName();
-            std::string followName = args->argName();
+            std::string clientName = args->clientname();
+            std::string followName = args->argname();
 
             //Someone is trying to follow themself??
-            if(clientName == followName)
-                return Status::INVALID_ARGUMENT;
+            if(clientName == followName){
+                response->set_status(-3);
+                return Status::OK;
+            }
             
             //Find indexes
             int j = 0, client = -1, follow = -1;
@@ -65,47 +78,76 @@ class timelineImpl final : public timeline::Service {
             }
 
             //Do the follow here
-            if(client == -1) // couldn't find the client in database
-                return Status::INVALID_ARGUMENT; 
-            else if(follow == -1) // couldn't find the follower in database
-                return Status::NOT_FOUND; 
+            if(client == -1){ // couldn't find the client in database
+                response->set_status(-1);
+                return Status::OK;
+            }
+            else if(follow == -1){ // couldn't find the follower in database
+                response->set_status(-1);
+                return Status::OK;
+            }
             else //add follow username to client followed users vector
                 clients.at(client).followedList.push_back(clients.at(follow).clientName); 
+
+            //Success!
+            response->set_status(0);
             return Status::OK;
 
         }
 
-        ::grpc::Status unfollow(::grpc::ServerContext* context, const ::fufArgs* request, ::Reply* response) override {
-           /* std::string requestedUsername = request->user();
-            if(std::find(userNameList.begin(), userNameList.end(), request->user()) != userNameList.end()) {
-                //TODO: disconnect from the user timeline
-                for (int i = 0; i < userTimeline.size(); i++){
-                    for (int j = 0; j < userTimeline.size(); j++){
-                        if(userTimeline[i][j] == requestedUsername){
-                            userTimeline[i][j].erase();
-                            break;
-                        }    
-                    }
-                }
-                response->set_status(1);
+        //UNFOLLOW <username>: Unfollows the named user's timeline
+        ::grpc::Status unfollow(::grpc::ServerContext* context, const ::fufArgs* args, ::Reply* response) override {
+            //Prepping variables
+            std::string clientName = args->clientname();
+            std::string followName = args->argname();
+
+            //Someone is trying to follow themself??
+            if(clientName == followName){
+                response->set_status(-3);
+                return Status::OK;
             }
-            else{
-                //not found
-                response->set_status(0);
-            }*/
-            return ::grpc::Status::OK;
+
+            //Find indexes
+            int j = 0, client = -1, follow = -1;
+            for(j = 0; j < clients.size(); j++) {
+                if(clientName == clients.at(j).clientName)    
+                    client = j; //found index for client
+                if(followName == clients.at(j).clientName)
+                    follow = j; //found index for follower
+            }
+
+            //Do the unfollow here
+            if(client == -1){ // couldn't find the client in database
+                response->set_status(-1);
+                return Status::OK;
+            }
+            else if(follow == -1){ // couldn't find the follower in database
+                response->set_status(-1); 
+                return Status::OK;
+            }
+            else //delete from followed users vector
+                clients.at(client).followedList.erase(unfollow); 
+
+            //Success!
+            response->set_status(0);
+            return Status::OK;
+
         }
 
-        ::grpc::Status list(::grpc::ServerContext* context, const ::Empty* request, ::grpc::ServerWriter< ::ListUsers>* writer) override {
-            ListUsers usr;
-            std::cout<<"usersend:"<<userNameList[0]<<std::endl;
-            usr.set_user(userNameList[0]);
-            writer->Write(usr);
-            return ::grpc::Status::OK;
+        //::grpc::Status list(::grpc::ServerContext* context, const ::Empty* request, ::grpc::ServerWriter< ::ListUsers>* writer) override {
+        ::grpc::Status list(::grpc::ServerContext* context, const ::Empty* request, ::ListUsers* response) override {
+            //TODO need to display all the followers as well
+            std::vector<std::vector<std::string>> followedList;
+
+            for(int j = 0; j < clients.size(); j++) {
+                //followedList[j].push_back(clients[j]);
+            }
+            return Status::OK;
+
         }
 
         ::grpc::Status timeline(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::posts, ::posts>* stream) override {
-            //find if the user is in the list, if not add
+            //TODO make this shit
 
             std::cout<<"I'm in timeline"<<std::endl;
             ::posts po;
@@ -113,7 +155,7 @@ class timelineImpl final : public timeline::Service {
             std::cout<<po.user()<<std::endl;
             std::cout<<po.time()<<std::endl;
             std::cout<<po.post()<<std::endl;
-            userNameList.push_back(po.user());
+            //userNameList.push_back(po.user());
 
             /*
 	    if(std::find(userNameList.begin(), userNameList.end(), po->user()) != userNameList.end()) {
@@ -136,7 +178,6 @@ void runServer(const std::string host, const std::string port) {
     std::string serverAddress = host + ":" + port;
     timelineImpl service;
 
-    //Read jason file
     ServerBuilder builder;
     builder.AddListeningPort(serverAddress, grpc::InsecureServerCredentials());
     builder.RegisterService(&service);
