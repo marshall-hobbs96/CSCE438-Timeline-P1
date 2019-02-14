@@ -85,6 +85,7 @@ int Client::connectTo()
     username usr;
     Reply reply;
 
+
     usr.set_user(this->myUsername);
     grpc::Status status = stub_->acceptConnections(&context, usr, &reply);
 
@@ -118,72 +119,39 @@ IReply Client::processCommand(std::string& input)
     fufArgs usrs;             //Username1 and Username2
     IReply ire;               //Their custom reply
 	
-    if(strstr(tokens[0].c_str(),"FOLLOW")) {
+    if(strstr(tokens[0].c_str(),"UNFOLLOW")) {
         usrs.set_clientname(this->myUsername);
         usrs.set_argname(tokens[1]);
-        status = stub_->follow(&context, usrs, &reply);
+        status = stub_->unfollow(&context, usrs, &reply);
         //std::cout<<"reply:"<<reply.status();
+        ire.comm_status = (IStatus) reply.status();
     }
-    else if(strstr(tokens[0].c_str(),"UNFOLLOW")) {
+    else if(strstr(tokens[0].c_str(),"FOLLOW")) {
         usrs.set_clientname(this->myUsername);
         usrs.set_argname(tokens[1]);
         status = stub_->follow(&context, usrs, &reply);
+        ire.comm_status = (IStatus) reply.status();
         //std::cout<<"reply:"<<reply.status();
     }
     else if(strstr(tokens[0].c_str(),"LIST")) {
-        ListUsers list;
-        Empty empty;
-        status = stub_->list(&context, empty, &list);
-        //std::cout<<"list:"<<std::endl;
-        //std::unique_ptr<ClientReader<ListUsers> > reader(stub_->list(&context,empty));
-        //while (reader->Read(&usr)) {           
-        //    std::cout <<usr.user()<< std::endl;
-        //    ire.all_users.push_back(usr.user());
-        //}
-        //Status status = reader->Finish();
+        ListUsers list; username usr;
+        usr.set_user(myUsername);
+        std::unique_ptr<ClientReader<ListUsers>> reader(stub_->list(&context, usr));
+        ire.comm_status = (IStatus) reply.status();
+
+        //read from protocal buffer into ListUsers object list. Can now mess with list
+        while(reader->Read(&list)) {    
+            if(list.followed()==1)
+                ire.following_users.push_back(list.user());
+            else
+                ire.all_users.push_back(list.user());
+        }
     }
     else if(strstr(tokens[0].c_str(),"TIMELINE")) {
-        //processtimeline()
+        processtimeline()
     }
-    else {}
-    // ------------------------------------------------------------
-    // GUIDE 2:
-    // Then, you should create a variable of IReply structure
-    // provided by the client.h and initialize it according to
-    // the result. Finally you can finish this function by returning
-    // the IReply.
-    // ------------------------------------------------------------
-    
-    // ------------------------------------------------------------
-    // HINT: How to set the IReply?
-    // Suppose you have "Join" service method for JOIN command,
-    // IReply can be set as follow:
-    // 
-    //     // some codes for creating/initializing parameters for
-    //     // service method
-    //     IReply ire;
-    //     grpc::Status status = stub_->Join(&context, /* some parameters */);
-    //     ire.grpc_status = status;
-    //     if (status.ok()) {
-    //         ire.comm_status = SUCCESS;
-    //     } else {
-    //         ire.comm_status = FAILURE_NOT_EXISTS;
-    //     }
-    //      
-    //      return ire;
-    // 
-    // IMPORTANT: 
-    // For the command "LIST", you should set both "all_users" and 
-    // "following_users" member variable of IReply.
-    // ------------------------------------------------------------
-    
-   
-    ire.grpc_status = status;
-    if (status.ok())
-        ire.comm_status = SUCCESS;
-    else
-        ire.comm_status = FAILURE_NOT_EXISTS;
 
+    ire.grpc_status = status;
     return ire;
 }
 
@@ -204,5 +172,7 @@ void Client::processTimeline()
     // to command mode. You don't have to worry about this situation,
     // and you can terminate the client program by pressing
     // CTRL-C (SIGINT)
-	// ------------------------------------------------------------
+    // ------------------------------------------------------------
+
+
 }

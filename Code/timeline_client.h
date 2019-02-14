@@ -131,6 +131,7 @@ std::string IClient::getCommand() const
 void IClient::displayCommandReply(const std::string& comm, const IReply& reply) const
 {
 	if (reply.grpc_status.ok()) {
+std::cout<<reply.comm_status;
 		switch (reply.comm_status) {
 			case SUCCESS:
                 std::cout << "Command completed successfully\n";
