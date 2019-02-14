@@ -2,7 +2,9 @@
 
 To run this, do:
 `make`
+
 `./timeline_server`
+
 `./timeline_client -u <USERNAME>`
 
 
