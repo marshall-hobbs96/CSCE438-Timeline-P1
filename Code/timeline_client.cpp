@@ -28,6 +28,7 @@ using grpc::ClientReader;
 using grpc::ClientReaderWriter;
 using grpc::ClientWriter;
 using grpc::Status;
+using namespace std;
 
 class Client : public IClient
 {
@@ -89,6 +90,12 @@ int Client::connectTo()
     usr.set_user(this->myUsername);
     grpc::Status status = stub_->acceptConnections(&context, usr, &reply);
 
+    if(reply.status() == -1) {
+
+        return -1;
+
+    }
+
     //Set up default message
     //init_post.set_user(myUsername);	
     //init_post.set_time(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
@@ -109,7 +116,9 @@ IReply Client::processCommand(std::string& input)
     std::stringstream ss(input);
     std::vector<std::string> tokens;
     while (ss >> buf){
+
         tokens.push_back(buf);
+
     }
 
     //Set up variables here
@@ -120,35 +129,52 @@ IReply Client::processCommand(std::string& input)
     IReply ire;               //Their custom reply
 	
     if(strstr(tokens[0].c_str(),"UNFOLLOW")) {
+
         usrs.set_clientname(this->myUsername);
         usrs.set_argname(tokens[1]);
         status = stub_->unfollow(&context, usrs, &reply);
-        //std::cout<<"reply:"<<reply.status();
+
         ire.comm_status = (IStatus) reply.status();
+
     }
     else if(strstr(tokens[0].c_str(),"FOLLOW")) {
+
         usrs.set_clientname(this->myUsername);
         usrs.set_argname(tokens[1]);
         status = stub_->follow(&context, usrs, &reply);
         ire.comm_status = (IStatus) reply.status();
-        //std::cout<<"reply:"<<reply.status();
+
+
     }
     else if(strstr(tokens[0].c_str(),"LIST")) {
+
         ListUsers list; username usr;
         usr.set_user(myUsername);
         std::unique_ptr<ClientReader<ListUsers>> reader(stub_->list(&context, usr));
         ire.comm_status = (IStatus) reply.status();
 
         //read from protocal buffer into ListUsers object list. Can now mess with list
+        ire.following_users.push_back(myUsername);
+
         while(reader->Read(&list)) {    
+
             if(list.followed()==1)
+
                 ire.following_users.push_back(list.user());
+
             else
+
                 ire.all_users.push_back(list.user());
+
         }
+
     }
+
     else if(strstr(tokens[0].c_str(),"TIMELINE")) {
+
+        std::cout << "Now you are in the timeline" << std::endl;
         processTimeline();
+
     }
 
     ire.grpc_status = status;
@@ -157,55 +183,43 @@ IReply Client::processCommand(std::string& input)
 
 void Client::processTimeline()
 {
-    ClientContext context;
     grpc::Status status;      //Success or Fail	
     Reply reply;              //Some possible reply
     ::posts po;               //Create message
     Empty empty;
+
     while(1){
         
         //Get current time and user message
         std::string message = getPostMessage();
-        long int currTime = (long int)std::time(0);
-        //long int currTime; //std::stoi(std::asctime(std::localtime(&result)));
-       	//currTime = static_cast<long int> time;
-        //long int currTime = time;
-        po.set_user("test");
+        long int currTime = (long int)std::time(NULL);
+        po.set_user(this->myUsername);
         po.set_time(currTime);
         po.set_post(message);
 
         
 
         //Send posts over
+        ClientContext context;
         stub_->sendPost(&context,po,&empty);
 
         posts p; username usr;
-        usr.set_user("test");
-        std::unique_ptr<ClientReader<posts>> reader(stub_->updateTimeline(&context, usr));
+        usr.set_user(this->myUsername);
+        ClientContext context2;
+        std::unique_ptr<ClientReader<posts>> reader(stub_->updateTimeline(&context2, usr));
+
+        cout << "Hello" << endl;
+
         //read from protocal buffer into ListUsers object list. Can now mess with list
-	std::cout<< "Here" << std::endl;
+
         while(reader->Read(&p)) {
+
             std::cout<<p.user()<<std::endl;
             std::cout<<p.time()<<std::endl;
             std::cout<<p.post()<<std::endl;
+
         }       
-	std::cout<< "Here" << std::endl;
 
     }
 
-/*
-        posts p; username usr;
-        usr.set_user(this->myUsername);
-        std::unique_ptr<ClientReader<posts>> reader(stub_->p(&context, usr));]
-
-        rpc list(username) returns(stream ListUsers) {}
-        rpc updateTimeline(username) returns(stream posts) {}
-
-
-
-        ListUsers list; username usr;
-        usr.set_user(this->myUsername);
-        std::unique_ptr<ClientReader<ListUsers>> reader(stub_->list(&context, usr));
-        ire.comm_status = (IStatus) reply.status();
-*/
 }
