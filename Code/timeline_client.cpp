@@ -148,7 +148,7 @@ IReply Client::processCommand(std::string& input)
         }
     }
     else if(strstr(tokens[0].c_str(),"TIMELINE")) {
-        processtimeline()
+        processTimeline();
     }
 
     ire.grpc_status = status;
@@ -157,22 +157,55 @@ IReply Client::processCommand(std::string& input)
 
 void Client::processTimeline()
 {
-	// ------------------------------------------------------------
-    // In this function, you are supposed to get into timeline mode.
-    // You may need to call a service method to communicate with
-    // the server. Use getPostMessage/displayPostMessage functions
-    // for both getting and displaying messages in timeline mode.
-    // You should use them as you did in hw1.
-	// ------------------------------------------------------------
+    ClientContext context;
+    grpc::Status status;      //Success or Fail	
+    Reply reply;              //Some possible reply
+    ::posts po;               //Create message
+    Empty empty;
+    while(1){
+        
+        //Get current time and user message
+        std::string message = getPostMessage();
+        long int currTime = (long int)std::time(0);
+        //long int currTime; //std::stoi(std::asctime(std::localtime(&result)));
+       	//currTime = static_cast<long int> time;
+        //long int currTime = time;
+        po.set_user("test");
+        po.set_time(currTime);
+        po.set_post(message);
 
-    // ------------------------------------------------------------
-    // IMPORTANT NOTICE:
-    //
-    // Once a user enter to timeline mode , there is no way
-    // to command mode. You don't have to worry about this situation,
-    // and you can terminate the client program by pressing
-    // CTRL-C (SIGINT)
-    // ------------------------------------------------------------
+        
+
+        //Send posts over
+        stub_->sendPost(&context,po,&empty);
+
+        posts p; username usr;
+        usr.set_user("test");
+        std::unique_ptr<ClientReader<posts>> reader(stub_->updateTimeline(&context, usr));
+        //read from protocal buffer into ListUsers object list. Can now mess with list
+	std::cout<< "Here" << std::endl;
+        while(reader->Read(&p)) {
+            std::cout<<p.user()<<std::endl;
+            std::cout<<p.time()<<std::endl;
+            std::cout<<p.post()<<std::endl;
+        }       
+	std::cout<< "Here" << std::endl;
+
+    }
+
+/*
+        posts p; username usr;
+        usr.set_user(this->myUsername);
+        std::unique_ptr<ClientReader<posts>> reader(stub_->p(&context, usr));]
+
+        rpc list(username) returns(stream ListUsers) {}
+        rpc updateTimeline(username) returns(stream posts) {}
 
 
+
+        ListUsers list; username usr;
+        usr.set_user(this->myUsername);
+        std::unique_ptr<ClientReader<ListUsers>> reader(stub_->list(&context, usr));
+        ire.comm_status = (IStatus) reply.status();
+*/
 }

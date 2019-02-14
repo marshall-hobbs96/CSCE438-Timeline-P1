@@ -183,6 +183,7 @@ void IClient::toUpperCase(std::string& str) const
  */
 std::string getPostMessage()
 {
+    std::cout <<"Make post msg: ";
     char buf[MAX_DATA];
     while (1) {
 	    fgets(buf, MAX_DATA, stdin);

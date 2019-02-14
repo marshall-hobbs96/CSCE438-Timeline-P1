@@ -21,6 +21,7 @@ using grpc::ServerReader;
 using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
+using grpc::StatusCode;
 /*
 using timeline::username;
 using timeline::fufArgs;
@@ -28,8 +29,7 @@ using timeline::Reply;
 using timeline::posts;
 using timeline::ListUsers;
 using timeline::Empty;
-*/
-
+using timeline::Timeline;*/
 using std::chrono::system_clock;
 
 
@@ -68,7 +68,7 @@ class timelineImpl final : public timeline::Service {
             std::string clientName = args->clientname();
             std::string followName = args->argname();
             //std::cout<<clientName;
-s           //std::cout<<followName;
+            //std::cout<<followName;
 
             //Someone is trying to follow themself??
             if(clientName == followName){
@@ -200,10 +200,10 @@ s           //std::cout<<followName;
             ListUsers * newUser = new ListUsers;
             //return whole list
             for(j = 0; j < clients.size(); j++){
-       		 //write whole user list
+       		//write whole user list
         	newUser->set_user(clients.at(j).clientName);
                 newUser->set_followed(0);
-       		 writer->Write(*newUser);
+       		writer->Write(*newUser);
 
        		 //Find client list
                 if(connected_client == clients.at(j).clientName) {
@@ -219,35 +219,61 @@ s           //std::cout<<followName;
                 newUser->set_followed(1);
                 writer->Write(*newUser);
             }
-
         delete newUser;
         return Status::OK;
         }
 
-        ::grpc::Status timeline(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::posts, ::posts>* stream) override {
-            //TODO make this shit
+        
+        
 
-            std::cout<<"I'm in timeline"<<std::endl;
-            ::posts po;
-            stream->Read(&po);
-            std::cout<<po.user()<<std::endl;
-            std::cout<<po.time()<<std::endl;
-            std::cout<<po.post()<<std::endl;
-            //userNameList.push_back(po.user());
+        //::grpc::Status updateTimeline(::grpc::ServerContext* context, const ::username* request, ::grpc::ServerWriter< ::posts>* writer)
+        ::grpc::Status updateTimeline(::grpc::ServerContext* context, const ::username * user, ::grpc::ServerWriter<::posts>* writer) override {
 
-            /*
-	    if(std::find(userNameList.begin(), userNameList.end(), po->user()) != userNameList.end()) {
-                //response->set_status(1);
+            std::string connected_client = user->user();
+            int client_place = -1, j = 0; 
+            for(j = 0; j < clients.size(); j++){
+                if(connected_client == clients.at(j).clientName) {
+                    client_place = j; 
+                }
             }
-            else{
-		//create a timeline instance for the user
-                //response->set_status(0);
-		userNameList.push_back(po.user());
-            }*/
-	   
+            if(client_place == -1) {
+                return Status(StatusCode::FAILED_PRECONDITION, "We couldn't find you in our database");
+            }
+	    std::cout<< "Here in update" << std::endl;
+            int l = 0;
+            for(l = 0; ((l < 20) && (l < clients.at(client_place).timeline.size())); l++) {
+                std::cout<< "Here updating" << std::endl;
+                writer->Write((clients.at(client_place).timeline.at(clients.at(client_place).timeline.size() - l - 1)));
 
-            //save post to file
-            return ::grpc::Status::OK;
+            }
+            return Status::OK;
+        }
+        
+        //::grpc::Status sendPost(::grpc::ServerContext* context, const ::posts* request, ::Empty* response)
+        ::grpc::Status sendPost(::grpc::ServerContext* context, const ::posts* post, ::Empty* empty) override {
+            std::string client_name = post->user();
+
+            //Find client index
+            int client_place = -1, j = 0; 
+            for(j = 0; j < clients.size(); j++)
+                if(client_name == clients.at(j).clientName) 
+                    client_place = j;
+
+            if(client_place == -1)
+                return Status(StatusCode::FAILED_PRECONDITION, "We couldn't find you in our database");
+           
+            clients.at(client_place).client_posts.push_back(*post);
+            clients.at(client_place).timeline.push_back(*post);
+
+            for(j = 0; j < clients.size(); j++){
+                int k = 0;
+                for(k = 0; k < clients.at(j).followedList.size(); k ++){
+                    if(clients.at(j).followedList.at(k) == client_name){
+                        clients.at(j).timeline.push_back(*post);
+                    }
+                }
+            }
+        return Status::OK;    
         }
 };
 
@@ -262,7 +288,6 @@ void runServer(const std::string host, const std::string port) {
     std::unique_ptr<Server> server(builder.BuildAndStart());
     std::cout << "Server listening on " << serverAddress << std::endl;
     server->Wait();
-
 }
 
 int main(int argc, char** argv) {
@@ -271,7 +296,6 @@ int main(int argc, char** argv) {
     if(argc>1){
 	port=argv[1];		
     }
-std::cout<<"im server";
     runServer(hostname, port);
-   return 0;
+    return 0;
 }
