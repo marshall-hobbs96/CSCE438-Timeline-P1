@@ -131,6 +131,7 @@ std::string IClient::getCommand() const
 void IClient::displayCommandReply(const std::string& comm, const IReply& reply) const
 {
 	if (reply.grpc_status.ok()) {
+std::cout<<reply.comm_status;
 		switch (reply.comm_status) {
 			case SUCCESS:
                 std::cout << "Command completed successfully\n";
@@ -182,6 +183,7 @@ void IClient::toUpperCase(std::string& str) const
  */
 std::string getPostMessage()
 {
+    std::cout <<"Make post msg: ";
     char buf[MAX_DATA];
     while (1) {
 	    fgets(buf, MAX_DATA, stdin);

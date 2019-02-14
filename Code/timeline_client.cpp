@@ -29,15 +29,6 @@ using grpc::ClientReaderWriter;
 using grpc::ClientWriter;
 using grpc::Status;
 
-using timeline::username;
-using timeline::fufArgs;
-using timeline::Reply;
-using timeline::posts;
-using timeline::ListUsers;
-using timeline::Empty;
-using timeline::Timeline;
-using std::chrono::system_clock;
-
 class Client : public IClient
 {
     public:
@@ -56,7 +47,7 @@ class Client : public IClient
         
         // You can have an instance of the client stub
         // as a member variable.
-        std::unique_ptr<Timeline::Stub> stub_;
+        std::unique_ptr<timeline::Stub> stub_;
 };
 
 int main(int argc, char** argv) {
@@ -88,11 +79,12 @@ int main(int argc, char** argv) {
 int Client::connectTo()
 {
     std::string hosting = this->hostname + ":" + this->port;
-    stub_ = Timeline::NewStub(grpc::CreateChannel(hosting, grpc::InsecureChannelCredentials()));
+    stub_ = timeline::NewStub(grpc::CreateChannel(hosting, grpc::InsecureChannelCredentials()));
 
     ClientContext context;
     username usr;
-    Empty reply;
+    Reply reply;
+
 
     usr.set_user(this->myUsername);
     grpc::Status status = stub_->acceptConnections(&context, usr, &reply);
@@ -103,7 +95,7 @@ int Client::connectTo()
     //init_post.set_post("timeline created");
 
     //Writes the post there
-    //std::shared_ptr<ClientReaderWriter<::posts, ::posts>> swr(stub_->Timeline(&context));
+    //std::shared_ptr<ClientReaderWriter<::posts, ::posts>> swr(stub_->timeline(&context));
     //swr->Write(init_post);
     //swr->WritesDone();
 
@@ -123,100 +115,97 @@ IReply Client::processCommand(std::string& input)
     //Set up variables here
     ClientContext context;    //Client that's being sent replies
     grpc::Status status;      //Success or Fail	
-    Empty reply;              //Some possible reply
+    Reply reply;              //Some possible reply
     fufArgs usrs;             //Username1 and Username2
     IReply ire;               //Their custom reply
 	
-    if(strstr(tokens[0].c_str(),"FOLLOW")) {
+    if(strstr(tokens[0].c_str(),"UNFOLLOW")) {
         usrs.set_clientname(this->myUsername);
         usrs.set_argname(tokens[1]);
-        status = stub_->follow(&context, usrs, &reply);
+        status = stub_->unfollow(&context, usrs, &reply);
         //std::cout<<"reply:"<<reply.status();
+        ire.comm_status = (IStatus) reply.status();
     }
-    else if(strstr(tokens[0].c_str(),"UNFOLLOW")) {
+    else if(strstr(tokens[0].c_str(),"FOLLOW")) {
         usrs.set_clientname(this->myUsername);
         usrs.set_argname(tokens[1]);
         status = stub_->follow(&context, usrs, &reply);
+        ire.comm_status = (IStatus) reply.status();
         //std::cout<<"reply:"<<reply.status();
     }
     else if(strstr(tokens[0].c_str(),"LIST")) {
-        ListUsers list;
-        username usr;
+        ListUsers list; username usr;
+        usr.set_user(myUsername);
         std::unique_ptr<ClientReader<ListUsers>> reader(stub_->list(&context, usr));
+        ire.comm_status = (IStatus) reply.status();
 
-        while(reader->Read(&list)) {    //read from protocal buffer into ListUsers object list. Can now mess with list
-            
-
+        //read from protocal buffer into ListUsers object list. Can now mess with list
+        while(reader->Read(&list)) {    
+            if(list.followed()==1)
+                ire.following_users.push_back(list.user());
+            else
+                ire.all_users.push_back(list.user());
         }
-        //std::cout<<"list:"<<std::endl;
-        //std::unique_ptr<ClientReader<ListUsers> > reader(stub_->list(&context,empty));
-        //while (reader->Read(&usr)) {           
-        //    std::cout <<usr.user()<< std::endl;
-        //    ire.all_users.push_back(usr.user());
-        //}
-        //Status status = reader->Finish();
     }
     else if(strstr(tokens[0].c_str(),"TIMELINE")) {
-        //processtimeline()
+        processTimeline();
     }
-    else {}
-    // ------------------------------------------------------------
-    // GUIDE 2:
-    // Then, you should create a variable of IReply structure
-    // provided by the client.h and initialize it according to
-    // the result. Finally you can finish this function by returning
-    // the IReply.
-    // ------------------------------------------------------------
-    
-    // ------------------------------------------------------------
-    // HINT: How to set the IReply?
-    // Suppose you have "Join" service method for JOIN command,
-    // IReply can be set as follow:
-    // 
-    //     // some codes for creating/initializing parameters for
-    //     // service method
-    //     IReply ire;
-    //     grpc::Status status = stub_->Join(&context, /* some parameters */);
-    //     ire.grpc_status = status;
-    //     if (status.ok()) {
-    //         ire.comm_status = SUCCESS;
-    //     } else {
-    //         ire.comm_status = FAILURE_NOT_EXISTS;
-    //     }
-    //      
-    //      return ire;
-    // 
-    // IMPORTANT: 
-    // For the command "LIST", you should set both "all_users" and 
-    // "following_users" member variable of IReply.
-    // ------------------------------------------------------------
-    
-   
-    ire.grpc_status = status;
-    if (status.ok())
-        ire.comm_status = SUCCESS;
-    else
-        ire.comm_status = FAILURE_NOT_EXISTS;
 
+    ire.grpc_status = status;
     return ire;
 }
 
 void Client::processTimeline()
 {
-	// ------------------------------------------------------------
-    // In this function, you are supposed to get into timeline mode.
-    // You may need to call a service method to communicate with
-    // the server. Use getPostMessage/displayPostMessage functions
-    // for both getting and displaying messages in timeline mode.
-    // You should use them as you did in hw1.
-	// ------------------------------------------------------------
+    ClientContext context;
+    grpc::Status status;      //Success or Fail	
+    Reply reply;              //Some possible reply
+    ::posts po;               //Create message
+    Empty empty;
+    while(1){
+        
+        //Get current time and user message
+        std::string message = getPostMessage();
+        long int currTime = (long int)std::time(0);
+        //long int currTime; //std::stoi(std::asctime(std::localtime(&result)));
+       	//currTime = static_cast<long int> time;
+        //long int currTime = time;
+        po.set_user("test");
+        po.set_time(currTime);
+        po.set_post(message);
 
-    // ------------------------------------------------------------
-    // IMPORTANT NOTICE:
-    //
-    // Once a user enter to timeline mode , there is no way
-    // to command mode. You don't have to worry about this situation,
-    // and you can terminate the client program by pressing
-    // CTRL-C (SIGINT)
-	// ------------------------------------------------------------
+        
+
+        //Send posts over
+        stub_->sendPost(&context,po,&empty);
+
+        posts p; username usr;
+        usr.set_user("test");
+        std::unique_ptr<ClientReader<posts>> reader(stub_->updateTimeline(&context, usr));
+        //read from protocal buffer into ListUsers object list. Can now mess with list
+	std::cout<< "Here" << std::endl;
+        while(reader->Read(&p)) {
+            std::cout<<p.user()<<std::endl;
+            std::cout<<p.time()<<std::endl;
+            std::cout<<p.post()<<std::endl;
+        }       
+	std::cout<< "Here" << std::endl;
+
+    }
+
+/*
+        posts p; username usr;
+        usr.set_user(this->myUsername);
+        std::unique_ptr<ClientReader<posts>> reader(stub_->p(&context, usr));]
+
+        rpc list(username) returns(stream ListUsers) {}
+        rpc updateTimeline(username) returns(stream posts) {}
+
+
+
+        ListUsers list; username usr;
+        usr.set_user(this->myUsername);
+        std::unique_ptr<ClientReader<ListUsers>> reader(stub_->list(&context, usr));
+        ire.comm_status = (IStatus) reply.status();
+*/
 }
