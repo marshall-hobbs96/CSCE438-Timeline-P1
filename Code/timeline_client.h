@@ -73,18 +73,25 @@ void IClient::run()
 {
     int ret = connectTo();
     if (ret < 0) {
+
         std::cout << "connection failed: " << ret << std::endl;
         exit(1);
+
     }
+
     displayTitle();
+
     while (1) {
+
         std::string cmd = getCommand();
         IReply reply = processCommand(cmd);
         displayCommandReply(cmd, reply);
-        if (reply.grpc_status.ok() && reply.comm_status == SUCCESS
-                && cmd == "TIMELINE") {
+
+        if (reply.grpc_status.ok() && reply.comm_status == SUCCESS && cmd == "TIMELINE") {
+
             std::cout << "Now you are in the timeline" << std::endl;
             processTimeline();
+
         }
     }
 }
@@ -131,7 +138,7 @@ std::string IClient::getCommand() const
 void IClient::displayCommandReply(const std::string& comm, const IReply& reply) const
 {
 	if (reply.grpc_status.ok()) {
-std::cout<<reply.comm_status;
+
 		switch (reply.comm_status) {
 			case SUCCESS:
                 std::cout << "Command completed successfully\n";
@@ -168,7 +175,7 @@ std::cout<<reply.comm_status;
 		}
 	} else {
 		std::cout << "grpc failed: " << reply.grpc_status.error_message() << std::endl;
-	}
+	} 
 }
 
 void IClient::toUpperCase(std::string& str) const
@@ -187,6 +194,7 @@ std::string getPostMessage()
     char buf[MAX_DATA];
     while (1) {
 	    fgets(buf, MAX_DATA, stdin);
+
 	    if (buf[0] != '\n')  break;
     }
 

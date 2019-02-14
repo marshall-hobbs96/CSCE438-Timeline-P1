@@ -1,16 +1,20 @@
 syntax = "proto3";
 
 service timeline {
+
     rpc acceptConnections(username) returns(Reply) {}
 
     rpc follow(fufArgs) returns(Reply) {}
+
     rpc unfollow(fufArgs) returns(Reply) {}
+
     rpc list(username) returns(stream ListUsers) {}
-    
 
     rpc updateTimeline(username) returns(stream posts) {}
+
     rpc sendPost(posts) returns(Empty) {}
 }
+    
 
 message username{
     string user = 1;

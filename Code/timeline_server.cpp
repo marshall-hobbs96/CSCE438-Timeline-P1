@@ -4,16 +4,15 @@
 #include <iostream>
 #include <memory>
 #include <string>
-
+#include <fstream>
 #include <grpc/grpc.h>
 #include <grpc++/server.h>
 #include <grpc++/server_builder.h>
 #include <grpc++/server_context.h>
 #include <grpc++/security/server_credentials.h>
-//#include "helper.h"
-#include "timeline.grpc.pb.h"
+//#include "timeline.grpc.pb.h"
 #include "timeline_server.h"
-
+#include "helper.h"
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
@@ -22,70 +21,109 @@ using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
 using grpc::StatusCode;
-/*
-using timeline::username;
-using timeline::fufArgs;
-using timeline::Reply;
-using timeline::posts;
-using timeline::ListUsers;
-using timeline::Empty;
-using timeline::Timeline;*/
+ 
 using std::chrono::system_clock;
 
 
 class timelineImpl final : public timeline::Service {
+
     public:
+
         std::vector<clientEntry> clients;
+        std::vector<clientEntry> not_connected;
 
         //Used for connectto, begins a timeline for all users
-        ::grpc::Status acceptConnections(::grpc::ServerContext* context, const ::username* username, ::Reply* response) override {       
+        ::grpc::Status acceptConnections(::grpc::ServerContext* context, const ::username* username, ::Reply* response) override {
+
             //great, we have a new user. So lets add it to clients. 
             //Also need check if user exits, because user can exit and run again
-            //std::cout<<" accept here";
-            int j = 0, client = -1;
-            for(j = 0; j < clients.size(); j++)
-                if(username->user() == clients.at(j).clientName)    //found index for client
-                    client = j;
 
-            //std::cout<<username->user();
-            if(client==-1){
-                 clientEntry *newClient = new clientEntry;
-                 newClient->clientName = username->user();
-                 clients.push_back(*newClient);
-	         response->set_status(0);
-		 return Status::OK;
+            int j = 0, client = -1;
+
+            for(j = 0; j < clients.size(); j++){
+
+                if(username->user() == clients.at(j).clientName)    //found index for client
+
+                client = j;
+
             }
-	    else{
-     		response->set_status(0);
-	        return Status::OK;
-	    }
+/*
+            for(j = 0; j < not_connected.size(); j++) {
+
+                if(username->user() == not_connected.at(j).clientName){
+
+                    clientEntry * newClient = new clientEntry;
+                    newClient->clientName = username->user();
+                    newClient->followedList = not_connected.at(j).followedList;
+                    newClient->followerList = not_connected.at(j).followerList;
+                    newClient->client_posts = not_connected.at(j).client_posts;
+                    newClient->timeline = not_connected.at(j).timeline;
+
+                    response->set_status(0);
+                    return Status::OK;
+
+                }
+
+            }
+*/
+            if(client == -1){
+
+                clientEntry *newClient = new clientEntry;
+                newClient->clientName = username->user();
+	        newClient->lastreadtime = 0;
+                clients.push_back(*newClient);
+
+	            response->set_status(0);
+
+		   return Status::OK;
+
+            }
+
+            else{
+		clients.at(client).lastreadtime = 0;
+                response->set_status(0);
+                return Status::OK;
+
+            }
         }
 
         //FOLLOW <username>: Follows the named user's timeline
+
         ::grpc::Status follow(::grpc::ServerContext* context, const ::fufArgs* args, ::Reply* response) override {
-            //std::cout<<" follow";
-            //Prepping variables
             std::string clientName = args->clientname();
             std::string followName = args->argname();
-            //std::cout<<clientName;
-            //std::cout<<followName;
+
 
             //Someone is trying to follow themself??
+
             if(clientName == followName){
-                response->set_status(3);
+
+                response->set_status(1);
                 return Status::OK;
+
             }
             
             //Find indexes
+
             int j = 0, client = -1, follow = -1;
+
             for(j = 0; j < clients.size(); j++) {
-                if(clientName == clients.at(j).clientName)    
+
+                if(clientName == clients.at(j).clientName) {   
+
                     client = j; //found index for client
-                if(followName == clients.at(j).clientName)
+
+                }
+
+                if(followName == clients.at(j).clientName){
+
                     follow = j; //found index for follower
+                }
+
             }
 
             //Do the follow here
+
             if(client == -1){ // couldn't find the client in database
                 response->set_status(2);
                 return Status::OK;
@@ -94,26 +132,36 @@ class timelineImpl final : public timeline::Service {
                 response->set_status(2);
                 return Status::OK;
             }
+
             else {//add follow username to client followed users vector
+
     		int  k;
                 int  c = -1;
-        	for(k = 0; k < clients.at(client).followedList.size(); k++){
-         	   if(clients.at(client).followedList.at(k)==followName){
-          		//already follow
+
+                for(k = 0; k < clients.at(client).followedList.size(); k++){
+
+                    if(clients.at(client).followedList.at(k)==followName){
+
+                        //already follow
                         c=k;
-        	        response->set_status(3);
- 	               return Status::OK;
-          	   }
+                        response->set_status(3);
+                        return Status::OK;
+
+                    }
+                
                 }
+
                 if(c==-1){
-                     //the name I followed
-                     clients.at(client).followedList.push_back(followName);
-                     //put me into follower of the other user
-                     clients.at(follow).followerList.push_back(clientName);
+
+                    //the name I followed
+                    clients.at(client).followedList.push_back(followName);
+                    //put me into follower of the other user
+                    clients.at(follow).followerList.push_back(clientName);
+                        
                 }
-           	 //Success!
-            	response->set_status(0);
-            	return Status::OK;
+                //Success!
+                    response->set_status(0);
+                    return Status::OK;
             }
 
         }
@@ -226,9 +274,10 @@ class timelineImpl final : public timeline::Service {
         
         
 
-        //::grpc::Status updateTimeline(::grpc::ServerContext* context, const ::username* request, ::grpc::ServerWriter< ::posts>* writer)
+        
         ::grpc::Status updateTimeline(::grpc::ServerContext* context, const ::username * user, ::grpc::ServerWriter<::posts>* writer) override {
 
+            //std::cout << "HELLO" << std::endl;
             std::string connected_client = user->user();
             int client_place = -1, j = 0; 
             for(j = 0; j < clients.size(); j++){
@@ -239,13 +288,17 @@ class timelineImpl final : public timeline::Service {
             if(client_place == -1) {
                 return Status(StatusCode::FAILED_PRECONDITION, "We couldn't find you in our database");
             }
-	    std::cout<< "Here in update" << std::endl;
+	    //std::cout<< "Here in update" << std::endl;
             int l = 0;
             for(l = 0; ((l < 20) && (l < clients.at(client_place).timeline.size())); l++) {
-                std::cout<< "Here updating" << std::endl;
-                writer->Write((clients.at(client_place).timeline.at(clients.at(client_place).timeline.size() - l - 1)));
-
+               
+                posts post = clients.at(client_place).timeline.at(clients.at(client_place).timeline.size() - l - 1);
+                if(post.time()>clients.at(client_place).lastreadtime){
+                 //std::cout<< "Here updating" <<clients.at(client_place).lastreadtime<<":"<<post.time()<< std::endl;
+                    writer->Write(post);
+		}
             }
+	    clients.at(client_place).lastreadtime = (long int)std::time(NULL);
             return Status::OK;
         }
         
@@ -263,16 +316,19 @@ class timelineImpl final : public timeline::Service {
                 return Status(StatusCode::FAILED_PRECONDITION, "We couldn't find you in our database");
            
             clients.at(client_place).client_posts.push_back(*post);
-            clients.at(client_place).timeline.push_back(*post);
+            //clients.at(client_place).timeline.push_back(*post);
 
-            for(j = 0; j < clients.size(); j++){
-                int k = 0;
-                for(k = 0; k < clients.at(j).followedList.size(); k ++){
-                    if(clients.at(j).followedList.at(k) == client_name){
+            //put in my followers timeline
+	    int k = -1;
+            for(k = 0; k < clients.at(client_place).followerList.size(); k ++){
+                int j=-1;
+                for(j = 0; j < clients.size(); j++){
+                    if(clients.at(j).clientName == clients.at(client_place).followerList.at(k)){
                         clients.at(j).timeline.push_back(*post);
-                    }
+                     }
                 }
             }
+        WriteToDB("timeline_db.txt", clients);
         return Status::OK;    
         }
 };
@@ -281,7 +337,11 @@ void runServer(const std::string host, const std::string port) {
 
     std::string serverAddress = host + ":" + port;
     timelineImpl service;
+    GetDbFileContent("timeline_db.txt", service.clients);
+     //    std::cout<<"output:"<<service.clients.size()<<std::endl;
+       // outputdb(service.clients);
 
+// WriteToDB("timeline_db1.txt", service.clients); 
     ServerBuilder builder;
     builder.AddListeningPort(serverAddress, grpc::InsecureServerCredentials());
     builder.RegisterService(&service);
