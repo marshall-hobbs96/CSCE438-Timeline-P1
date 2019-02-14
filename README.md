@@ -1,6 +1,7 @@
 # CSCE438_HW2
 
 To run this, do:
+
 `make`
 
 `./timeline_server`
