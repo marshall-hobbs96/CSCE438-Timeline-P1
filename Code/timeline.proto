@@ -14,6 +14,7 @@ service timeline {
 
     rpc sendPost(posts) returns(Empty) {}
 }
+    
 
 message username{
     string user = 1;

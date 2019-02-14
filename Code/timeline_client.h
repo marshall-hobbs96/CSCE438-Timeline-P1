@@ -175,7 +175,7 @@ void IClient::displayCommandReply(const std::string& comm, const IReply& reply) 
 		}
 	} else {
 		std::cout << "grpc failed: " << reply.grpc_status.error_message() << std::endl;
-	}
+	} 
 }
 
 void IClient::toUpperCase(std::string& str) const
@@ -194,6 +194,7 @@ std::string getPostMessage()
     char buf[MAX_DATA];
     while (1) {
 	    fgets(buf, MAX_DATA, stdin);
+
 	    if (buf[0] != '\n')  break;
     }
 

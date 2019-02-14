@@ -30,6 +30,7 @@ class clientEntry {
     std::vector<std::string> followerList;      //who theyre following
     std::vector<posts> client_posts;            //list of their posts
     std::vector<posts> timeline;                //timeline
+    int lastreadtime;
 };
 
 void runServer(const std::string host, const std::string port);

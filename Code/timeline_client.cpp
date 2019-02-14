@@ -85,26 +85,16 @@ int Client::connectTo()
     ClientContext context;
     username usr;
     Reply reply;
-
-
+    IReply ire;
+    reply.set_status(-99);
     usr.set_user(this->myUsername);
     grpc::Status status = stub_->acceptConnections(&context, usr, &reply);
 
-    if(reply.status() == -1) {
+     
+    ire.comm_status = (IStatus) reply.status();
 
+    if(reply.status() == -99)
         return -1;
-
-    }
-
-    //Set up default message
-    //init_post.set_user(myUsername);	
-    //init_post.set_time(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-    //init_post.set_post("timeline created");
-
-    //Writes the post there
-    //std::shared_ptr<ClientReaderWriter<::posts, ::posts>> swr(stub_->timeline(&context));
-    //swr->Write(init_post);
-    //swr->WritesDone();
 
     return 1; // return 1 if success, otherwise return -1
 }
@@ -157,7 +147,7 @@ IReply Client::processCommand(std::string& input)
         ire.following_users.push_back(myUsername);
 
         while(reader->Read(&list)) {    
-
+ 
             if(list.followed()==1)
 
                 ire.following_users.push_back(list.user());
@@ -188,8 +178,27 @@ void Client::processTimeline()
     ::posts po;               //Create message
     Empty empty;
 
+ 
+
     while(1){
         
+        posts p; username usr;
+        usr.set_user(this->myUsername);
+        ClientContext context2;
+        std::unique_ptr<ClientReader<posts>> reader(stub_->updateTimeline(&context2, usr));
+
+
+        //read from protocal buffer into ListUsers object list 
+
+        while(reader->Read(&p)) {
+
+            //std::cout<<p.user()<<std::endl;
+            //std::cout<<p.time()<<std::endl;
+            //std::cout<<p.post()<<std::endl;
+	    std::time_t t = (int)p.time();
+           displayPostMessage(p.user(), p.post(), t);
+        }       
+
         //Get current time and user message
         std::string message = getPostMessage();
         long int currTime = (long int)std::time(NULL);
@@ -203,22 +212,8 @@ void Client::processTimeline()
         ClientContext context;
         stub_->sendPost(&context,po,&empty);
 
-        posts p; username usr;
-        usr.set_user(this->myUsername);
-        ClientContext context2;
-        std::unique_ptr<ClientReader<posts>> reader(stub_->updateTimeline(&context2, usr));
+         
 
-        cout << "Hello" << endl;
-
-        //read from protocal buffer into ListUsers object list. Can now mess with list
-
-        while(reader->Read(&p)) {
-
-            std::cout<<p.user()<<std::endl;
-            std::cout<<p.time()<<std::endl;
-            std::cout<<p.post()<<std::endl;
-
-        }       
 
     }
 
